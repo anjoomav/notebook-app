@@ -64,6 +64,14 @@
       put(v); open(v);
     });
   }
+  // The notebook's Settings → Reload button asks this page to load the notebook again (after an update). Only the
+  // notebook's own Google frame is listened to.
+  window.addEventListener('message', function (e) {
+    if (!e.data || e.data.nb !== 'reload' || !/^https:\/\/[a-z0-9.-]+\.googleusercontent\.com$/.test(e.origin)) return;
+    try { e.source.postMessage({ nb: 'reload-ack' }, '*'); } catch (x) {}
+    var u = get();
+    if (LINK.test(u)) frame.src = u + '?r=' + Date.now() + location.hash;
+  });
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 </script>
 </body>
