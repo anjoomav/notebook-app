@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Notebook</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2e6b5b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Notebook">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+  :root { color-scheme: light dark; }
+  html, body { margin: 0; height: 100%; background: #ffffff; color: #222; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  @media (prefers-color-scheme: dark) { html, body { background: #1c1c1a; color: #eee; } }
+  iframe { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; }
+  #ask { display: none; min-height: 100%; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box; }
+  #ask form { width: 100%; max-width: 420px; display: grid; gap: 12px; }
+  #ask img { width: 64px; height: 64px; border-radius: 14px; }
+  #ask h1 { font-size: 20px; margin: 0; font-weight: 600; }
+  #ask p { margin: 0; color: #666; font-size: 14px; }
+  @media (prefers-color-scheme: dark) { #ask p { color: #aaa; } }
+  #ask input { font: inherit; padding: 10px 12px; border: 1px solid #aaa; border-radius: 8px; background: transparent; color: inherit; width: 100%; box-sizing: border-box; }
+  #ask button { font: inherit; padding: 10px 14px; border: 0; border-radius: 8px; background: #2e6b5b; color: #fff; cursor: pointer; }
+  #err { color: #b3261e; font-size: 14px; min-height: 1.2em; }
+</style>
+</head>
+<body>
+<div id="ask">
+  <form id="form">
+    <img src="icons/icon-192.png" alt="">
+    <h1>Open your notebook</h1>
+    <p>Paste your notebook's web app link once. This device remembers it; nothing is sent anywhere else.</p>
+    <input id="link" type="url" inputmode="url" autocomplete="off" placeholder="https://script.google.com/…/exec" aria-label="Notebook web app link">
+    <div id="err" role="alert"></div>
+    <button type="submit">Open</button>
+  </form>
+</div>
+<iframe id="app" title="Notebook" allow="clipboard-read; clipboard-write; fullscreen" hidden></iframe>
+<script>
+  // The notebook itself runs in Google Apps Script; this page only holds it in a window of its own, with its own icon.
+  // The link is kept on this device only (never in this page), and a link such as …/#<page> is passed straight through.
+  var KEY = 'notebook.link';
+  var LINK = /^https:\/\/script\.google\.com\/[^\s]+\/exec$/;
+  var ask = document.getElementById('ask'), frame = document.getElementById('app');
+  function get() { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } }
+  function put(v) { try { if (v) localStorage.setItem(KEY, v); else localStorage.removeItem(KEY); } catch (e) {} }
+  function open(url) {
+    ask.style.display = 'none';
+    frame.hidden = false;
+    frame.src = url + location.search + location.hash;
+  }
+  if (/[?&]reset\b/.test(location.search)) { put(''); history.replaceState(null, '', location.pathname + location.hash); } // …/?reset asks for the link again
+  var saved = get();
+  if (LINK.test(saved)) open(saved);
+  else {
+    ask.style.display = 'flex';
+    document.getElementById('form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = document.getElementById('link').value.trim().split('#')[0];
+      if (!LINK.test(v)) { document.getElementById('err').textContent = 'That doesn’t look like the notebook’s link. It starts with https://script.google.com and ends with /exec.'; return; }
+      put(v); open(v);
+    });
+  }
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
